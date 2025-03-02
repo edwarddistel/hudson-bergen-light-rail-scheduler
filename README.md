@@ -29,3 +29,5 @@ To use this yourself you'd have to get all the departure times for the stations 
 Technically you could rewrite the code to interpret AM/PM values but I feel like the 24-hour clock is an easier mental model.
 
 Mostly I wouldn't expect others to use this just storing it for historical reference.
+
+![HBLR Light Rail Scheduler](demo.jpg)
