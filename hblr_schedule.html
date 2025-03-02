@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HBLR Schedule</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1, h2 {
+            margin: 10px 0;
+        }
+        #clock {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        table {
+            width: 90%;
+            max-width: 600px;
+            margin: 20px auto;
+            border-collapse: collapse;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        @media (max-width: 600px) {
+            table, th, td {
+                font-size: 14px;
+            }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="/light-rail/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/light-rail/favicon.svg" />
+    <link rel="shortcut icon" href="/light-rail/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/light-rail/apple-touch-icon.png" />
+    <link rel="manifest" href="/light-rail/site.webmanifest" />
+</head>
+<body>
+
+    <h1>HBLR Train Schedule</h1>
+    <div id="clock"></div>
+    <div id="schedule"></div>
+
+    <script>
+        // Condensed JSON schedule data
+        const scheduleData = {"weekend":{"station":{"exchange_place":{"times":[14,19,39,44,59,114,124,144,154,214,554,559,614,619,634,639,654,659,714,719,734,739,754,759,814,819,834,839,854,859,914,919,934,939,954,959,1014,1019,1034,1039,1054,1059,1114,1119,1134,1139,1154,1159,1214,1219,1234,1239,1254,1259,1314,1319,1334,1339,1354,1359,1414,1419,1434,1439,1454,1459,1514,1519,1534,1539,1554,1559,1614,1619,1634,1639,1654,1659,1714,1719,1734,1739,1754,1759,1814,1819,1834,1839,1854,1859,1914,1919,1934,1939,1954,1959,2014,2019,2034,2039,2054,2059,2114,2119,2134,2139,2154,2159,2214,2219,2234,2239,2254,2259,2314,2319,2334,2339,2354,2359]},"liberty_state_park":{"times":[1,25,32,55,106,136,520,535,541,555,601,615,621,635,641,655,701,715,721,735,741,755,801,815,821,835,841,855,901,915,921,935,941,955,1001,1015,1021,1035,1041,1055,1101,1115,1121,1135,1141,1155,1201,1215,1221,1235,1241,1255,1301,1315,1321,1335,1341,1355,1401,1415,1421,1435,1441,1455,1501,1515,1521,1535,1541,1555,1601,1615,1621,1635,1641,1655,1701,1715,1721,1735,1741,1755,1801,1815,1821,1835,1841,1855,1901,1915,1921,1935,1941,1955,2001,2015,2021,2035,2041,2055,2101,2115,2121,2135,2141,2155,2201,2215,2221,2235,2241,2255,2301,2315,2321,2335,2341,2355]}}},"weekday":{"station":{"exchange_place":{"times":[2,14,32,44,102,114,132,144,202,214]},"liberty_state_park":{"times":[2,21,32,51,102,121]}}}};
+
+        // Determine if today is a weekday or weekend
+        const isWeekday = () => {
+            const today = new Date().getDay();
+            return today > 0 && today < 6;
+        };
+
+        // Format time from HHMM integer to "HH:MM AM/PM"
+        const formatTime = (timeInt) => {
+            const hours = Math.floor(timeInt / 100);
+            const minutes = timeInt % 100;
+            return `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours < 12 ? 'AM' : 'PM'}`;
+        };
+
+        // Calculate minutes until a train arrives
+        const minutesUntil = (timeInt) => {
+            const now = new Date();
+            const targetMinutes = Math.floor(timeInt / 100) * 60 + (timeInt % 100);
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            return (targetMinutes - currentMinutes + 1440) % 1440;
+        };
+
+        // Generate the table for a specific station
+        const createScheduleTable = (stationName, stationKey) => {
+            const scheduleType = isWeekday() ? 'weekday' : 'weekend';
+            const times = scheduleData[scheduleType].station[stationKey].times;
+
+            const upcomingTrains = times.map(time => ({
+                time,
+                minutesUntil: minutesUntil(time)
+            })).sort((a, b) => a.minutesUntil - b.minutesUntil).slice(0, 3);
+
+            return `
+                <h2>${stationName}</h2>
+                <table>
+                    <tr><th>Minutes Until</th><th>Scheduled Time</th></tr>
+                    ${upcomingTrains.map(train => `
+                        <tr>
+                            <td>${train.minutesUntil} min</td>
+                            <td>${formatTime(train.time)}</td>
+                        </tr>`).join('')}
+                </table>`;
+        };
+
+        // Function to display the current time
+        const updateClock = () => {
+            const now = new Date().toLocaleTimeString();
+            document.getElementById('clock').textContent = `Current Time: ${now}`;
+        };
+
+        // Function to update the schedule dynamically
+        const updateSchedule = () => {
+            document.getElementById('schedule').innerHTML = 
+                createScheduleTable('Liberty State Park', 'liberty_state_park') +
+                createScheduleTable('Exchange Place', 'exchange_place');
+        };
+
+        // Initial load and set intervals for updates
+        updateClock();
+        updateSchedule();
+        setInterval(updateClock, 1000); // Update clock every second
+        setInterval(updateSchedule, 5000); // Update schedule every 5 seconds
+    </script>
+</body>
+</html>
